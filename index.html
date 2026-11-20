@@ -29,6 +29,10 @@ function build(){
           objects.push({type:'block',x:x+170,w:34,h:120,mid:true});
         }
         if(i%2===1)objects.push({type:'block',x:x+240,w:34,h:110,ceiling:true});
+        if(level>0){
+          objects.push({type:'block',x:x+115,w:30,h:92+level*16,mid:true});
+          if(i%2===0)objects.push({type:'block',x:x+285,w:30,h:96+level*14,ceiling:true});
+        }
       }else if(kind==='stairs'){
         if(i%2===1)objects.push({type:'block',x,w:48,h:48+(i%3)*28+level*14});
       }else if(kind==='teeth'){
@@ -38,6 +42,10 @@ function build(){
           objects.push({type:'block',x:x+205,w:34,h:105,mid:true});
         }
         if(i%2===0)objects.push({type:'block',x:x+260,w:34,h:110,ceiling:true});
+        if(level>0){
+          objects.push({type:'block',x:x+125,w:30,h:82+level*18,mid:true});
+          if(i%2===1)objects.push({type:'block',x:x+300,w:30,h:90+level*16,ceiling:true});
+        }
       }else if(kind==='gaps'){
         if(i===2||i===4||i===6)objects.push({type:'block',x,w:120,h:220,ceiling:level===2&&i%4===0});
         if(i===3)objects.push({type:'wall',x:x+120,w:130,h:220,ceiling:true});
@@ -49,18 +57,15 @@ function build(){
       if(level>1&&kind==='cube'&&i%2===0)objects.push({type:'spike',x:x+140,w:34,h:52,ceiling:true});
     }
   };
-  section(0,'cube','cube');
-  section(3100,'ship','air');
-  section(6800,'wave','teeth');
-  section(10500,'robot','stairs');
-  section(14200,'spider','gaps');
-  section(17900,'ufo','air');
-  section(21600,'swing','air');
-  if(level>0)section(25300,'cube','cube');
-  if(level>1)section(29000,'ship','air');
+  const routes=[
+    [['cube','cube'],['ship','air'],['wave','teeth'],['robot','stairs'],['spider','gaps'],['ufo','air'],['swing','air']],
+    [['cube','cube'],['ufo','air'],['robot','stairs'],['wave','teeth'],['spider','gaps'],['ship','air'],['swing','air']],
+    [['cube','cube'],['wave','teeth'],['spider','gaps'],['ship','air'],['ufo','air'],['robot','stairs'],['swing','air']]
+  ][level];
+  routes.forEach(([form,kind],i)=>section(i*3100,form,kind));
   objects.push({type:'finish',x:L});
 }
-function reset(){running=false;won=false;scroll=0;t=0;runAge=0;shake=0;particles=[];p.x=160;p.y=ground()-p.size/2;p.vy=0;p.form='cube';p.angle=0;p.trail=[];p.spiderTop=false;p.swingUp=true;p.robotCharge=0;p.swingVy=0;p.robotLift=false;build();objects=objects.filter(o=>!(o.type==='block'&&o.x>=14200&&o.x<17900&&o.w===54));objects.push({type:'block',x:14700,w:120,h:220,ceiling:level===2},{type:'block',x:17200,w:120,h:220,ceiling:false});formEl.textContent='cube';distanceEl.textContent='0000'}function start(){reset();running=true;overlay.classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}function setLevel(n){level=n;document.querySelectorAll('.level').forEach((b,i)=>b.classList.toggle('active',i===n));reset();showIntro()}function showIntro(){eyebrow.textContent=`level 0${level+1} / ${levels[level].name}`;headline.innerHTML=level===0?'RIFT<em>//</em>RUN':`LEVEL <em>0${level+1}</em>`;copy.textContent=level===0?'Jump the teeth. Touch the portals. Every new form changes the rhythm.':level===1?'The gaps get tighter. The portals arrive faster. Keep your nerve.':'No room for hesitation. Read the color, then commit.';launch.textContent=level===0?'enter the drift':'enter level';overlay.classList.remove('hidden')}
+function reset(){running=false;won=false;scroll=0;t=0;runAge=0;shake=0;particles=[];p.x=160;p.y=ground()-p.size/2;p.vy=0;p.form='cube';p.angle=0;p.trail=[];p.spiderTop=false;p.swingUp=true;p.robotCharge=0;p.swingVy=0;p.robotLift=false;build();const spiderStart=level===2?6200:12400;objects.push({type:'block',x:spiderStart+750,w:120,h:220,ceiling:level===2},{type:'block',x:spiderStart+2800,w:120,h:220,ceiling:false});formEl.textContent='cube';distanceEl.textContent='0000'}function start(){reset();running=true;overlay.classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}function setLevel(n){level=n;document.querySelectorAll('.level').forEach((b,i)=>b.classList.toggle('active',i===n));reset();showIntro()}function showIntro(){eyebrow.textContent=`level 0${level+1} / ${levels[level].name}`;headline.innerHTML=level===0?'RIFT<em>//</em>RUN':`LEVEL <em>0${level+1}</em>`;copy.textContent=level===0?'Jump the teeth. Touch the portals. Every new form changes the rhythm.':level===1?'The gaps get tighter. The portals arrive faster. Keep your nerve.':'No room for hesitation. Read the color, then commit.';launch.textContent=level===0?'enter the drift':'enter level';overlay.classList.remove('hidden')}
 function jump(){if(!running)return;if(p.form==='spider'){p.spiderTop=!p.spiderTop;p.y=p.spiderTop?90:ground()-p.size/2;p.vy=0;burst(p.x,p.y,colors[p.form],14)}else if(p.form==='swing'){p.swingUp=!p.swingUp;burst(p.x,p.y,colors[p.form],8)}else if(p.form==='robot'){if(p.onGround){p.robotLift=true;p.robotCharge=0;p.vy=-260}}else if(p.form==='ufo')p.vy=-460;else if(p.form==='wave')p.vy=-520;else if(p.form==='ship')p.vy-=245;else if(p.onGround){p.vy=-610;p.onGround=false;burst(p.x,p.y+p.size/2,colors[p.form],8)}}function burst(x,y,c,n=10){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*180,vy:(Math.random()-.8)*180,life:.5+Math.random()*.45,c})}
 function portal(o,sx){ctx.save();let y=ground()-85,c=colors[o.form];ctx.translate(sx,y);ctx.globalAlpha=.35;ctx.strokeStyle=c;ctx.lineWidth=3;ctx.shadowBlur=25;ctx.shadowColor=c;ctx.beginPath();ctx.ellipse(0,0,25,68,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=.85;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,0,11,55,0,0,Math.PI*2);ctx.stroke();ctx.restore()}
 function drawBackground(){let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#111b35');g.addColorStop(.55,'#0a1025');g.addColorStop(1,'#060812');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);stars.forEach(s=>{ctx.globalAlpha=s.a*(.8+.2*Math.sin(t*2+s.x));ctx.fillStyle='#bcd5ff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill()});ctx.globalAlpha=1;ctx.strokeStyle='rgba(113,137,210,.12)';ctx.lineWidth=1;for(let i=0;i<14;i++){let x=(i*140-scroll*.08)%(W+140);ctx.beginPath();ctx.moveTo(x,H*.55);ctx.lineTo(x-80,H);ctx.stroke()}ctx.strokeStyle='rgba(108,246,227,.18)';ctx.beginPath();ctx.moveTo(0,ground()+.5);ctx.lineTo(W,ground()+.5);ctx.stroke();ctx.strokeStyle='rgba(108,246,227,.06)';for(let i=1;i<9;i++){let y=ground()+i*27;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}}
